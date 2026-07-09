@@ -264,18 +264,18 @@ class XPWindowContentView: NSView {
     
     var opacitySlider: NSSlider!
     var grainSlider: NSSlider!
-    var nightSightSlider: NSSlider!
     var contrastSlider: NSSlider!
     
     var opacityLabelVal: NSTextField!
     var grainLabelVal: NSTextField!
-    var nightSightLabelVal: NSTextField!
     var contrastLabelVal: NSTextField!
+    
+    var activateButton: NSButton!
     
     init(frame frameRect: NSRect, delegate: AppDelegate) {
         self.delegate = delegate
         super.init(frame: frameRect)
-        self.bounds = NSRect(x: 0, y: 0, width: 300, height: 250)
+        self.bounds = NSRect(x: 0, y: 0, width: 300, height: 220)
         
         setupViews()
     }
@@ -317,7 +317,6 @@ class XPWindowContentView: NSView {
         // Custom cell instances to apply the XP style to sliders
         let opacityCell = XPSliderCell()
         let grainCell = XPSliderCell()
-        let nightSightCell = XPSliderCell()
         let contrastCell = XPSliderCell()
         
         let yBase = boxRect.minY + 20
@@ -327,49 +326,49 @@ class XPWindowContentView: NSView {
         let sliderX: CGFloat = 145
         let sliderW: CGFloat = 90
         
-        // Row 4: Opacity
+        // Row 3: Opacity
         let opLabel = createLabel("Opacity:", font: tFont)
-        opLabel.frame = NSRect(x: 20, y: yBase + rowH * 3, width: labelW, height: 18)
+        opLabel.frame = NSRect(x: 20, y: yBase + rowH * 2, width: labelW, height: 18)
         addSubview(opLabel)
         
         opacitySlider = NSSlider()
         opacitySlider.cell = opacityCell
         opacitySlider.minValue = 0.0
         opacitySlider.maxValue = 1.0 // UI max is 100%
-        let currentOp = delegate?.textureGenerator.opacity ?? 0.025
+        let currentOp = delegate?.textureGenerator.opacity ?? 0.0
         opacitySlider.doubleValue = Double(currentOp / 0.5) // Map engine value (0-0.5) to UI value (0-1.0)
         opacitySlider.target = self
         opacitySlider.action = #selector(sliderChanged(_:))
-        opacitySlider.frame = NSRect(x: sliderX, y: yBase + rowH * 3, width: sliderW, height: 20)
+        opacitySlider.frame = NSRect(x: sliderX, y: yBase + rowH * 2, width: sliderW, height: 20)
         addSubview(opacitySlider)
         
         opacityLabelVal = createLabel("\(Int((currentOp / 0.5) * 100))%", font: tFont, alignRight: true)
-        opacityLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 3, width: 40, height: 18)
+        opacityLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 2, width: 40, height: 18)
         addSubview(opacityLabelVal)
         
-        // Row 3: Grain Intensity
+        // Row 2: Grain Intensity
         let grLabel = createLabel("Grain Intensity:", font: tFont)
-        grLabel.frame = NSRect(x: 20, y: yBase + rowH * 2, width: labelW, height: 18)
+        grLabel.frame = NSRect(x: 20, y: yBase + rowH * 1, width: labelW, height: 18)
         addSubview(grLabel)
         
         grainSlider = NSSlider()
         grainSlider.cell = grainCell
         grainSlider.minValue = 0.0
         grainSlider.maxValue = 1.0 // UI max is 100%
-        let currentGr = delegate?.textureGenerator.grainIntensity ?? 0.03
+        let currentGr = delegate?.textureGenerator.grainIntensity ?? 0.0
         grainSlider.doubleValue = Double(currentGr / 0.12) // Map engine value (0-0.12) to UI value (0-1.0)
         grainSlider.target = self
         grainSlider.action = #selector(sliderChanged(_:))
-        grainSlider.frame = NSRect(x: sliderX, y: yBase + rowH * 2, width: sliderW, height: 20)
+        grainSlider.frame = NSRect(x: sliderX, y: yBase + rowH * 1, width: sliderW, height: 20)
         addSubview(grainSlider)
         
         grainLabelVal = createLabel("\(Int((currentGr / 0.12) * 100))%", font: tFont, alignRight: true)
-        grainLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 2, width: 40, height: 18)
+        grainLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 1, width: 40, height: 18)
         addSubview(grainLabelVal)
         
-        // Row 2: Contrast Compensation
+        // Row 1: Contrast Compensation
         let ctLabel = createLabel("Contrast Compensation:", font: tFont)
-        ctLabel.frame = NSRect(x: 20, y: yBase + rowH * 1, width: labelW, height: 18)
+        ctLabel.frame = NSRect(x: 20, y: yBase + rowH * 0, width: labelW, height: 18)
         addSubview(ctLabel)
         
         contrastSlider = NSSlider()
@@ -379,32 +378,32 @@ class XPWindowContentView: NSView {
         contrastSlider.doubleValue = Double(delegate?.textureGenerator.contrastCompensation ?? 0.0)
         contrastSlider.target = self
         contrastSlider.action = #selector(sliderChanged(_:))
-        contrastSlider.frame = NSRect(x: sliderX, y: yBase + rowH * 1, width: sliderW, height: 20)
+        contrastSlider.frame = NSRect(x: sliderX, y: yBase + rowH * 0, width: sliderW, height: 20)
         addSubview(contrastSlider)
         
         contrastLabelVal = createLabel("\(Int((delegate?.textureGenerator.contrastCompensation ?? 0.0) * 100))%", font: tFont, alignRight: true)
-        contrastLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 1, width: 40, height: 18)
+        contrastLabelVal.frame = NSRect(x: 240, y: yBase + rowH * 0, width: 40, height: 18)
         addSubview(contrastLabelVal)
         
-        // Row 1: Night Sight Label & Slider
-        let nsLabel = createLabel("Night Sight:", font: tFont)
-        nsLabel.frame = NSRect(x: 20, y: yBase, width: labelW, height: 18)
-        addSubview(nsLabel)
+        // Activate Button
+        activateButton = NSButton()
+        activateButton.cell = XPButtonCell()
+        let isActive = delegate?.textureGenerator.isActive ?? false
+        activateButton.title = isActive ? "Deactivate" : "Activate"
+        activateButton.target = self
+        activateButton.action = #selector(activateClicked(_:))
+        activateButton.frame = NSRect(x: 12, y: 12, width: 90, height: 24)
         
-        nightSightSlider = NSSlider()
-        nightSightSlider.cell = nightSightCell
-        nightSightSlider.minValue = 0.0
-        nightSightSlider.maxValue = 1.0
-        nightSightSlider.doubleValue = Double(delegate?.textureGenerator.nightSight ?? 0.0)
-        nightSightSlider.target = self
-        nightSightSlider.action = #selector(sliderChanged(_:))
-        nightSightSlider.frame = NSRect(x: sliderX, y: yBase, width: sliderW, height: 20)
-        addSubview(nightSightSlider)
-        
-        nightSightLabelVal = createLabel("\(Int((delegate?.textureGenerator.nightSight ?? 0.0) * 100))%", font: tFont, alignRight: true)
-        nightSightLabelVal.frame = NSRect(x: 240, y: yBase, width: 40, height: 18)
-        addSubview(nightSightLabelVal)
-        
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: tFont,
+            .foregroundColor: NSColor.black,
+            .paragraphStyle: style
+        ]
+        activateButton.attributedTitle = NSAttributedString(string: activateButton.title, attributes: attrs)
+        addSubview(activateButton)
+
         // Copyright Label (Moved to bottom right)
         let copyLabel = createLabel("© studio choccymilk", font: NSFont(name: "Tahoma", size: 10) ?? NSFont.systemFont(ofSize: 10), alignRight: true)
         copyLabel.frame = NSRect(x: bounds.width - 162, y: 16, width: 150, height: 16)
@@ -425,11 +424,6 @@ class XPWindowContentView: NSView {
             delegate.textureGenerator.grainIntensity = val * 0.12 // Map UI (0-1.0) to Engine (0-0.12)
             UserDefaults.standard.set(delegate.textureGenerator.grainIntensity, forKey: "grainIntensity")
             grainLabelVal.stringValue = "\(Int(val * 100))%"
-        } else if sender == nightSightSlider {
-            let val = Float(sender.doubleValue)
-            delegate.textureGenerator.nightSight = val
-            UserDefaults.standard.set(val, forKey: "nightSight")
-            nightSightLabelVal.stringValue = "\(Int(val * 100))%"
         } else if sender == contrastSlider {
             let val = Float(sender.doubleValue)
             delegate.textureGenerator.contrastCompensation = val
@@ -438,6 +432,26 @@ class XPWindowContentView: NSView {
         }
         
         // Notify delegate to regenerate overlays in real-time
+        delegate.updateOverlays()
+    }
+    
+    @objc func activateClicked(_ sender: NSButton) {
+        guard let delegate = delegate else { return }
+        delegate.textureGenerator.isActive.toggle()
+        UserDefaults.standard.set(delegate.textureGenerator.isActive, forKey: "isActive")
+        
+        let newTitle = delegate.textureGenerator.isActive ? "Deactivate" : "Activate"
+        
+        let tFont = NSFont(name: "Tahoma", size: 11) ?? NSFont.systemFont(ofSize: 11)
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: tFont,
+            .foregroundColor: NSColor.black,
+            .paragraphStyle: style
+        ]
+        sender.attributedTitle = NSAttributedString(string: newTitle, attributes: attrs)
+        
         delegate.updateOverlays()
     }
     

@@ -6,11 +6,10 @@ class TextureGenerator {
     static let height = 512
     
     // Config
-    var opacity: Float = UserDefaults.standard.object(forKey: "opacity") as? Float ?? 0.025
-    var grainIntensity: Float = UserDefaults.standard.object(forKey: "grainIntensity") as? Float ?? 0.03
-    var nightSight: Float = UserDefaults.standard.object(forKey: "nightSight") as? Float ?? 0.0
-    var isNightSightEnabled: Bool = true
+    var opacity: Float = UserDefaults.standard.object(forKey: "opacity") as? Float ?? 0.0
+    var grainIntensity: Float = UserDefaults.standard.object(forKey: "grainIntensity") as? Float ?? 0.0
     var contrastCompensation: Float = UserDefaults.standard.object(forKey: "contrastCompensation") as? Float ?? 0.0
+    var isActive: Bool = UserDefaults.standard.object(forKey: "isActive") as? Bool ?? false
     
     private var cachedNoise: [Float] = []
     private var cachedTooth: [Float] = []
@@ -45,69 +44,53 @@ class TextureGenerator {
         guard let data = context.data else { return nil }
         let pixels = data.bindMemory(to: UInt8.self, capacity: TextureGenerator.width * TextureGenerator.height * 4)
         
-        let baseR: Float = 248, baseG: Float = 241, baseB: Float = 228
-        let nightR: Float = 255, nightG: Float = 147, nightB: Float = 41
+        let darkFactor: Float = 1.0 - (contrastCompensation * 0.5)
+        
+        let baseR: Float = 248.0 * darkFactor
+        let baseG: Float = 241.0 * darkFactor
+        let baseB: Float = 228.0 * darkFactor
+        
+        let grainR: Float = 0.0
+        let grainG: Float = 0.0
+        let grainB: Float = 128.0
+        
+        let pulpStrength: Float = 0.02
+        let grainStrength: Float = 1.5 * grainIntensity
         
         for i in 0..<(TextureGenerator.width * TextureGenerator.height) {
             let n = cachedNoise[i]
             let tooth = cachedTooth[i]
             
-            var r = baseR
-            var g = baseG
-            var b = baseB
+            let pMod = 1.0 + (n * pulpStrength)
+            var curR = baseR * pMod
+            var curG = baseG * pMod
+            var curB = baseB * pMod
             
-            let pMod = 1.0 + (n * 0.02)
-            r *= pMod
-            g *= pMod
-            b *= pMod
+            var grainAmp: Float = 0.0
             
-            // Night Sight: Exact macOS Night Shift Colour (Warm)
-            var nsAlphaContribution: Float = 0.0
-            if nightSight > 0.0 {
-                // To achieve the exact macOS Night Shift (approx 3000K) colour shift on a white screen
-                // using alpha blending, we target a deep amber color with a mathematically precise alpha weight.
-                // When blended over white (255, 255, 255) at 55% alpha, this yields exactly (255, 175, 115), 
-                // which perfectly matches the macOS Night Shift hardware colour profile!
-                let tR: Float = 255.0
-                let tG: Float = 110.0
-                let tB: Float = 0.0
-                
-                r += (tR - r) * nightSight
-                g += (tG - g) * nightSight
-                b += (tB - b) * nightSight
-                
-                nsAlphaContribution = nightSight * 0.55
+            if tooth < 0.0 {
+                let factor = -tooth * grainStrength
+                curR += (grainR - curR) * factor
+                curG += (grainG - curG) * factor
+                curB += (grainB - curB) * factor
+                grainAmp = factor
+            } else {
+                let factor = tooth * grainStrength
+                curR += (255.0 - curR) * factor
+                curG += (255.0 - curG) * factor
+                curB += (255.0 - curB) * factor
+                grainAmp = factor
             }
             
-            // Contrast compensation: Darkens proportionally to preserve hue (no green/warm shift)
-            if contrastCompensation > 0 {
-                // Scale down to a maximum of 10% original brightness for intense contrast
-                let darkenFactor = 1.0 - (contrastCompensation * 0.9)
-                r *= darkenFactor
-                g *= darkenFactor
-                b *= darkenFactor
-            }
+            // finalAlpha is the base opacity + extra alpha for grain
+            let finalAlpha = max(min(opacity + grainAmp, 1.0), 0.0)
             
-            // Encode the grain directly into the Alpha channel!
-            // This is the ONLY way to ensure grain is highly visible even when the base opacity is low.
-            let grainAmp = tooth * grainIntensity
-            
-            // We also add it to RGB for high opacity cases.
-            let rgbGrain = grainAmp * 255.0
-            r += rgbGrain
-            g += rgbGrain
-            b += rgbGrain
-            
-            // The alpha of the pixel varies up and down based on the noise.
-            // Night sight acts independently of base opacity!
-            let effectiveBaseAlpha = max(opacity, nsAlphaContribution)
-            let finalAlpha = effectiveBaseAlpha + (grainAmp * 1.0)
-            
+            // Premultiply RGB by alpha for CGImageAlphaInfo.premultipliedLast
             let px = i * 4
-            pixels[px] = UInt8(max(min(r, 255), 0))
-            pixels[px + 1] = UInt8(max(min(g, 255), 0))
-            pixels[px + 2] = UInt8(max(min(b, 255), 0))
-            pixels[px + 3] = UInt8(max(min(finalAlpha * 255.0, 255.0), 0.0))
+            pixels[px] = UInt8(max(min(curR * finalAlpha, 255.0), 0.0))
+            pixels[px + 1] = UInt8(max(min(curG * finalAlpha, 255.0), 0.0))
+            pixels[px + 2] = UInt8(max(min(curB * finalAlpha, 255.0), 0.0))
+            pixels[px + 3] = UInt8(finalAlpha * 255.0)
         }
         
         guard let cgImage = context.makeImage() else { return nil }

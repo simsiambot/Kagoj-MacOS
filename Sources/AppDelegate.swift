@@ -95,6 +95,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     func updateOverlays() {
+        if !textureGenerator.isActive {
+            for window in overlayWindows {
+                window.backgroundColor = NSColor.clear
+                window.alphaValue = 1.0
+            }
+            return
+        }
+        
         // Generate the texture once
         guard let textureImage = textureGenerator.generateImage() else { return }
         
@@ -104,6 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Apply it to all screens
         for window in overlayWindows {
             window.backgroundColor = backgroundColor
+            window.alphaValue = 1.0
         }
     }
 }
