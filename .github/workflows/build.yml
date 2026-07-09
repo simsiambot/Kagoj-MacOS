@@ -1,0 +1,26 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v3
+
+      - name: Compile Kagoj
+        run: bash build.sh
+
+      - name: Zip the Application
+        run: zip -r Kagoj-macOS-Release.zip Kagoj.app
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Kagoj-macOS-Compiled
+          path: Kagoj-macOS-Release.zip
