@@ -32,7 +32,7 @@ cat <<EOF > Kagoj.app/Contents/Info.plist
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSUIElement</key>
-    <true/> <!-- This hides the app from the Dock! -->
+    <false/> <!-- Show the app in the Dock! -->
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

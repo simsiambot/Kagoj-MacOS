@@ -10,7 +10,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         setupMenuBar()
         setupOverlays()
-        updateOverlays()
+        
+        // Force an async flush to screen before drawing texture
+        DispatchQueue.main.async {
+            self.updateOverlays()
+        }
         showSettingsWindow()
         
         // Listen for screen changes (e.g. plugging in a second monitor)
@@ -19,6 +23,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
+    }
+    
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showSettingsWindow()
+        return true
     }
     
     func setupMenuBar() {
@@ -64,6 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let window = SettingsWindow(contentRect: rect, delegate: self)
             window.delegate = self
             window.level = .screenSaver
+            window.collectionBehavior = .moveToActiveSpace
             
             self.settingsWindow = window
             window.makeKeyAndOrderFront(nil)
@@ -86,23 +96,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         // Create one overlay per physical screen
         for screen in NSScreen.screens {
-            let window = OverlayWindow(contentRect: screen.frame)
-            let view = NSView(frame: screen.frame)
-            window.contentView = view
+            // HACK: Expand window by 1px to break WindowServer Space-Transition optimization!
+            let expandedFrame = screen.frame.insetBy(dx: -1, dy: -1)
+            let window = OverlayWindow(contentRect: expandedFrame)
+            
+            // Preserve the default contentView so we don't destroy wantsLayer!
+            window.contentView?.wantsLayer = true
+            
             overlayWindows.append(window)
-            window.makeKeyAndOrderFront(nil)
+            window.orderFront(nil)
         }
     }
     
     func updateOverlays() {
-        if !textureGenerator.isActive {
-            for window in overlayWindows {
-                window.backgroundColor = NSColor.clear
-                window.alphaValue = 1.0
-            }
-            return
-        }
-        
         // Generate the texture once
         guard let textureImage = textureGenerator.generateImage() else { return }
         

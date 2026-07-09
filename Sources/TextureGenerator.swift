@@ -6,15 +6,33 @@ class TextureGenerator {
     static let height = 512
     
     // Config
-    var opacity: Float = UserDefaults.standard.object(forKey: "opacity") as? Float ?? 0.0
-    var grainIntensity: Float = UserDefaults.standard.object(forKey: "grainIntensity") as? Float ?? 0.0
-    var contrastCompensation: Float = UserDefaults.standard.object(forKey: "contrastCompensation") as? Float ?? 0.0
-    var isActive: Bool = UserDefaults.standard.object(forKey: "isActive") as? Bool ?? false
+    var opacity: Float = UserDefaults.standard.float(forKey: "opacity")
+    var grainIntensity: Float = UserDefaults.standard.float(forKey: "grainIntensity")
+    var contrastCompensation: Float = UserDefaults.standard.float(forKey: "contrastCompensation")
+    var nightSight: Float = UserDefaults.standard.float(forKey: "nightSight")
     
     private var cachedNoise: [Float] = []
     private var cachedTooth: [Float] = []
     
     init() {
+        // Strict mathematical defaults for the very first launch on a new Mac
+        // Opacity 5% UI -> 0.025 Engine
+        // Grain 55% UI -> 0.066 Engine
+        // Contrast 20% UI -> 0.20 Engine
+        // Night Sight 0% UI -> 0.0 Engine
+        UserDefaults.standard.register(defaults: [
+            "opacity": 0.025,
+            "grainIntensity": 0.066,
+            "contrastCompensation": 0.20,
+            "nightSight": 0.0
+        ])
+        
+        // Load the values (they will use the registered defaults if not previously saved)
+        opacity = UserDefaults.standard.float(forKey: "opacity")
+        grainIntensity = UserDefaults.standard.float(forKey: "grainIntensity")
+        contrastCompensation = UserDefaults.standard.float(forKey: "contrastCompensation")
+        nightSight = UserDefaults.standard.float(forKey: "nightSight")
+        
         generateBaseNoise()
     }
     
@@ -57,14 +75,20 @@ class TextureGenerator {
         let pulpStrength: Float = 0.02
         let grainStrength: Float = 1.5 * grainIntensity
         
+        // Add warm amber tint for Night Sight (Warmer)
+        // 1.5x stronger than before
+        let nightB: Float = -(nightSight * 255.0 * 1.5)
+        let nightR: Float = nightSight * 100.0 * 1.5
+        let nightG: Float = nightSight * 50.0 * 1.5
+        
         for i in 0..<(TextureGenerator.width * TextureGenerator.height) {
             let n = cachedNoise[i]
             let tooth = cachedTooth[i]
             
             let pMod = 1.0 + (n * pulpStrength)
-            var curR = baseR * pMod
-            var curG = baseG * pMod
-            var curB = baseB * pMod
+            var curR = min(baseR * pMod + nightR, 255.0)
+            var curG = min(baseG * pMod + nightG, 255.0)
+            var curB = max(baseB * pMod + nightB, 0.0)
             
             var grainAmp: Float = 0.0
             
