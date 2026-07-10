@@ -28,7 +28,7 @@ cat <<EOF > Kagoj.app/Contents/Info.plist
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1</string>
+    <string>1.1.1</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSUIElement</key>

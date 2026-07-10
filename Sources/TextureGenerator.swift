@@ -107,7 +107,8 @@ class TextureGenerator {
             }
             
             // finalAlpha is the base opacity + extra alpha for grain
-            let finalAlpha = max(min(opacity + grainAmp, 1.0), 0.0)
+            // FIX: Use abs(grainAmp) so shadows don't drop to 0% opacity on white backgrounds!
+            let finalAlpha = max(min(opacity + abs(grainAmp), 1.0), 0.0)
             
             // Premultiply RGB by alpha for CGImageAlphaInfo.premultipliedLast
             let px = i * 4
